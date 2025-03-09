@@ -128,8 +128,7 @@ export default function HomePage() {
             opacity={0.7}
             style={{ "margin-top": "10px", "margin-bottom": "10px" }}
           >
-            Nerimity offers an elegant and feature-rich experience that sets it
-            apart.
+            {t("homePage.description")}
           </Text>
           <ButtonsContainer class="buttons-container">
             <a href="/register">
@@ -163,6 +162,8 @@ export default function HomePage() {
 }
 
 const PlatformDownloadLinks = () => {
+  const [t] = useTransContext();
+
   const navigate = useNavigate();
   return (
     <FlexColumn gap={10} itemsCenter style={{ "margin-top": "10px" }}>
@@ -173,7 +174,7 @@ const PlatformDownloadLinks = () => {
         <Button
           onClick={() => navigate("/register")}
           color=""
-          label="Browser"
+          label={t("homePage.browserButtonLabel")}
           iconName="public"
           primary
         />

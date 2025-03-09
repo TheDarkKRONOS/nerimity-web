@@ -8,7 +8,9 @@
   "homePage": {
     "slogan": "Современное и стильное чат-приложение.",
     "viewGitHubButton": "Посмотреть на GitHub",
-    "getStarted": "Начнём использовать"
+    "getStarted": "Начнём использовать",
+    "description": "Nerimity предлагает элегантный и многофункциональный опыт, который отличает его от других.",
+    "browserButtonLabel": "Browser"
   },
   "loginPage": {
     "title": "Войдите, чтобы продолжить",
@@ -424,5 +426,20 @@
     "attachments": "Вложения",
     "attachmentsBack": "Назад",
     "members": "Участники"
+  },
+  "tickets": {
+    "categories": {
+      "SERVER_VERIFICATION": "Верификация сервера",
+      "QUESTION": "Вопрос",
+      "ACCOUNT": "Аккаунт",
+      "ABUSE": "Абуз",
+      "OTHER": "Другое"
+    },
+    "errors": {
+      "selectCategory": "Пожалуйста, выберите категорию",
+      "emptyBody": "Пожалуйста, введите сообщение",
+      "smallBodyLength": "Сообщение должно быть хотя бы от 100 символов.",
+      "emptyInviteUrl": "Пожалуйста, введите URL приглашения (брать из настроек сервера)"
+    }
   }
 }

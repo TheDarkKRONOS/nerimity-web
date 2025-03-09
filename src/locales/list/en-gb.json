@@ -8,7 +8,9 @@
   "homePage": {
     "slogan": "A modern and sleek chat app.",
     "viewGitHubButton": "View GitHub",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "description": "Nerimity offers an elegant and feature-rich experience that sets it apart.",
+    "browserButtonLabel": "Browser"
   },
   "loginPage": {
     "title": "Login to continue",
@@ -425,5 +427,20 @@
     "attachments": "Attachments",
     "attachmentsBack": "Back",
     "members": "Members"
+  },
+  "tickets": {
+    "categories": {
+      "SERVER_VERIFICATION": "Verify Server",
+      "QUESTION": "Question",
+      "ACCOUNT": "Account",
+      "ABUSE": "Abuse",
+      "OTHER": "Other"
+    },
+    "errors": {
+      "selectCategory": "Please select a category",
+      "emptyBody": "Please enter a body",
+      "smallBodyLength": "Description must be at least 200 characters.",
+      "emptyInviteUrl": "Please enter an invite URL (from your server settings)"
+    }
   }
 }

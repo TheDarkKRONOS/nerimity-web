@@ -9,6 +9,7 @@ import LegacyModal from "./ui/legacy-modal/LegacyModal";
 import { Notice } from "./ui/Notice/Notice";
 import Input from "./ui/input/Input";
 import Text from "./ui/Text";
+import { t } from "i18next";
 
 interface AbuseTicket {
   id: "ABUSE";
@@ -42,11 +43,11 @@ export function CreateTicketModal(props: {
   const [requestSent, setRequestSent] = createSignal(false);
 
   const Categories: DropDownItem[] = [
-    { id: "SERVER_VERIFICATION", label: "Verify Server" },
-    { id: "QUESTION", label: "Question" },
-    { id: "ACCOUNT", label: "Account" },
-    { id: "ABUSE", label: "Abuse" },
-    { id: "OTHER", label: "Other" },
+    { id: "SERVER_VERIFICATION", label: t("tickets.categories.SERVER_VERIFICATION") },
+    { id: "QUESTION", label: t("tickets.categories.QUESTION") },
+    { id: "ACCOUNT", label: t("tickets.categories.ACCOUNT") },
+    { id: "ABUSE", label: t("tickets.categories.ABUSE") },
+    { id: "OTHER", label: t("tickets.categories.OTHER") },
   ];
 
   const hasProblem = () =>
@@ -58,18 +59,18 @@ export function CreateTicketModal(props: {
     setError(null);
 
     if (selectedCategoryId() === "SELECT") {
-      setError("Please select a category");
+      setError(t("tickets.errors.selectCategory"));
       return;
     }
 
     if (!body()) {
-      setError("Please enter a body");
+      setError(t("tickets.errors.emptyBody"));
       return;
     }
 
     if (hasProblem()) {
       if (body().length < 100) {
-        setError("Description must be at least 200 characters.");
+        setError(t("tickets.errors.smallBodyLength"));
         return;
       }
     }
@@ -98,7 +99,7 @@ export function CreateTicketModal(props: {
 
     if (selectedCategoryId() === "SERVER_VERIFICATION") {
       if (!serverInviteUrl()) {
-        setError("Please enter an invite URL (from your server settings)");
+        setError(t("tickets.errors.emptyInviteUrl"));
         return;
       }
       customBody = `Server Invite URL: ${serverInviteUrl()}\n\nExcited For:\n${customBody}`;
