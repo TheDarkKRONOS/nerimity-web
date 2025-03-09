@@ -7,7 +7,8 @@
   },
   "homePage": {
     "slogan": "Современное и стильное чат-приложение.",
-    "viewGitHubButton": "Посмотреть на GitHub"
+    "viewGitHubButton": "Посмотреть на GitHub",
+    "getStarted": "Начнём использовать"
   },
   "loginPage": {
     "title": "Войдите, чтобы продолжить",
@@ -38,7 +39,14 @@
     "discover": "Все посты",
     "notifications": "Уведомления"
   },
+  "messageArea": {
+    "messageBoxPlaceholder": "Сообщение {{username}}",
+    "messageBoxChannelPlaceholder": "Сообщение в {{channelName}}"
+  },
   "inbox": {
+    "blockedUsersModal": {
+      "title": "Заблокированные пользователи"
+    },
     "drawer": {
       "searchBarPlaceholder": "Поиск",
       "friendRequests": "{{count}} Запросов в друзья",
@@ -134,7 +142,8 @@
         "permissionsDescription": "Управление разрешениями для этого канала.",
         "deleteThisChannel": "Удалить этот канал",
         "deleteThisChannelDescription": "Это действие не может быть отменено!",
-        "deleteChannelButton": "Удалить канал"
+        "deleteChannelButton": "Удалить канал",
+        "removeNoticeButton": "Удалить заметку"
       },
       "invites": {
         "createInviteButton": "Создать приглашение",
@@ -165,16 +174,18 @@
       "manageRolesDescription": "Разрешение на обновление или удаление ролей.",
       "manageChannels": "Управлять каналами",
       "manageChannelsDescription": "Разрешение на обновление или удаление каналов.",
-      "kick": "Выгонять",
+      "kick": "Выгнать",
       "kickDescription": "Разрешение выгонять пользователей.",
       "ban": "Банить",
       "banDescription": "Разрешение на блокировку пользователей.",
-      "mentionEveryone": "Упомянать всех",
+      "mentionEveryone": "Упоминать всех",
       "mentionEveryoneDescription": "Разрешение упоминать @everyone. Администраторы сервера могут упоминать всех.",
       "nicknameMember": "Менять свое имя",
       "nicknameMemberDescription": "Разрешить пользователям менять свой ник на сервере."
     },
     "channelPermissions": {
+      "publicChannel": "Публичный канал",
+      "publicChannelDescription": "Включить доступность для канала. Админы сервера могут иметь доступ к любому каналу.",
       "sendMessage": "Отправлять сообщения",
       "sendMessageDescription": "Разрешение на отправку сообщений в канале. Администраторы сервера могут отправлять сообщения.",
       "joinVoice": "Присоединяться к голосовому каналу",
@@ -192,6 +203,7 @@
       "developer": "Для разработчиков",
       "applications": "Приложения",
       "experiments": "Эксперименты",
+      "badges": "Значки",
       "viewSource": "Посмотреть исходник",
       "changelog": "Изменения",
       "window-settings": "Настройки окна",
@@ -264,6 +276,48 @@
         "hideFollowing": "Скрыть подписки",
         "hideFollowingDescription": "Скрыть пользователей, на которых вы подписаны из вашего профиля."
       }
+    },
+    "notifications": {
+      "desktopNotifications": "Уведомления на рабочем столе",
+      "desktopNotificationsDescription": "Показывать уведомления на рабочем столе, даже когда приложение свернуто.",
+      "sounds": "Звуки",
+      "soundsDescription": "Если звуки уведомлений слишком раздражают, вы можете отключить их.",
+      "volume": "Громкость",
+      "volumeDescription": "Изменение громкости звуков уведомлений.",
+      "changeSoundsDescription": "Измените звуковые сигналы уведомлений с помощью этих бесплатных звуков.",
+      "message": "Сообщение",
+      "messageDescription": "Звуковой сигнал при получении сообщения.",
+      "mention": "Упоминание",
+      "mentionDescription": "Звуковой сигнал при упоминании.",
+      "inAppPreview": "Предварительный просмотр в приложении",
+      "inAppPreviewDescription": "Отображение всплывающих уведомлений в приложении.",
+      "inAppPreviewModes": {
+        "off": "Выкл",
+        "mentionsOnly": "Только упоминания",
+        "inheritFromPingSettings": "Наследуется от настроек уведомлений/упоминаний",
+        "all": "Все"
+      }
+    },
+    "call": {
+      "nextCallNotice": "Изменения будут применены при следующих звонках.",
+      "inputDevices": "Устройства ввода(микрофон)",
+      "outputDevices": "Устройства вывода(наушники, колонки и т.д.)",
+      "default": "По умолчанию",
+      "inputMode": "Режим голоса",
+      "openMic": "Всегда захватывать любой звук",
+      "voiceActivity": "Активация по голосу",
+      "pushToTalk": "Режим рации",
+      "bindButton": "Назначить",
+      "stopButton": "Стоп",
+      "downloadAppNotice": "Загрузите настольное приложение Nerimity, чтобы использовать эту функцию без фокуса вкладки окна."
+    },
+    "interface": {
+      "blurEffect": "Эффект блюра",
+      "blurEffectDescription": "Включает эффект прозрачного размытия. По умолчанию отключен на мобильных устройствах. Может вызывать проблемы с производительностью.",
+      "disableAdvancedMarkupBar": "Отключить панель расширенной разметки",
+      "disableAdvancedMarkupBarDescription": "Отключение расширенной панели разметки из текстовых каналов.",
+      "customizeColors": "Настройка цвета",
+      "customizeColorsDescription": "Вы можете изменить цвета интерфейса."
     }
   },
   "supportBlock": {
@@ -300,7 +354,8 @@
     "kick": "Выгнать",
     "ban": "Забанить",
     "changeNickname": "Изменить имя",
-    "callVolume": "Громкость звука"
+    "transferOwnership": "Передать владение",
+    "callVolume": "Громкость звонка"
   },
   "kickServerMemberModal": {
     "title": "Выгнать {{username}}",
@@ -323,7 +378,11 @@
     "editMessage": "Редактировать сообщение",
     "deleteMessage": "Удалить сообщение",
     "copyMessage": "Скопировать сообщение",
-    "copyId": "Скопировать ID сообщения"
+    "copyId": "Скопировать ID сообщения",
+    "viewReactions": "Просмотр реакций",
+    "quoteMessage": "Цитировать сообщение",
+    "reportMessage": "Пожаловаться на сообщение",
+    "reply": "Ответить"
   },
   "profile": {
     "followButton": "Подписаться",
@@ -347,16 +406,17 @@
       "cancelButton": "Отмена",
       "deleteButton": "Удалить"
     },
-    "postWasDeleted": "Этот пост был удален!",
+    "postWasDeleted": "Этот пост был удалён!",
     "someoneLikedYourPost": "<1>{{username}}</1> понравился ваш пост!",
-    "someoneFollowedYou": "<1>{{username}}</1> подписался на вас!",
+    "someoneRepostedYourPost": "<1>{{username}}</1> сделал репост!",
+    "someoneFollowedYou": "<1>{{username}}</1> подписан на вас!",
     "someoneRepliedToPost": "<1>{{username}}</1> ответил на ваш пост!",
-    "createAPostInputPlaceholder": "Написать пост...",
-    "replyInputPlaceholder": "Написать ответ...",
+    "createAPostInputPlaceholder": "Создать пост...",
+    "replyInputPlaceholder": "Ответить...",
     "replyButton": "Ответить",
-    "createButton": "Опубликовать",
-    "pollOptions": "Варианты голосования",
-    "optionNumberPlaceholder": "Ответ {{number}}"
+    "createButton": "Создать",
+    "pollOptions": "Варианты опроса",
+    "optionNumberPlaceholder": "Вариант {{number}}"
   },
   "informationDrawer": {
     "title": "Информация",
