@@ -7,6 +7,40 @@
   }
 }
 
+.newDayMarker {
+  align-self: center;
+  padding: 6px;
+  margin-top: 10px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+}
+
+.translationArea {
+  display: flex;
+
+  overflow: hidden;
+  align-self: flex-start;
+  flex-direction: column;
+  padding: 10px;
+  margin-right: 6px;
+  border: solid 1px rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.02);
+  word-break: break-word;
+  white-space: pre-line;
+  font-size: 14px;
+  gap: 4px;
+  .title {
+    font-size: 16px;
+    font-weight: bold;
+    .translationSource {
+      opacity: 0.6;
+      font-size: 12px;
+      font-weight: normal;
+    }
+  }
+}
 .username {
   overflow: hidden;
   line-height: 1;
@@ -77,6 +111,13 @@
     width: 40px;
     padding-right: 6px;
     padding-left: 6px;
+    .icon {
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.6);
+      &.logoutIcon {
+        rotate: 180deg;
+      }
+    }
   }
   .date {
     margin-left: 6px;
@@ -348,13 +389,7 @@ body .reactionItem {
   align-items: start;
   flex-direction: column;
 }
-.htmlEmbedContainer {
-  position: relative;
-  display: flex;
-  overflow: auto;
-  align-self: normal;
-  max-height: 500px;
-}
+
 .ogEmbedContainer {
   display: flex;
   max-width: 500px;

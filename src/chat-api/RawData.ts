@@ -303,7 +303,17 @@ export interface RawPublicServer {
   bumpCount: number;
   pinnedAt?: number;
   lifetimeBumpCount: number;
-  server?: RawServer & { _count: { serverMembers: number } };
+  server?: RawServer & {
+    _count: { serverMembers: number };
+    createdBy: RawUser;
+  };
+}
+
+export interface RawBotCommand {
+  name: string;
+  description: string;
+  args: string;
+  botUserId: string;
 }
 
 export interface RawPost {
@@ -315,6 +325,7 @@ export interface RawPost {
   commentToId: string;
   commentTo?: RawPost;
   createdBy: RawUser;
+  embed?: RawEmbed;
   createdAt: number;
   mentions: RawUser[];
   editedAt: number;

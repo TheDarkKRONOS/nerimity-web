@@ -22,6 +22,7 @@ import { useWindowProperties } from "../../common/useWindowProperties";
 import {
   ChannelType,
   MessageType,
+  RawBotCommand,
   RawCustomEmoji,
   RawMessage,
 } from "../../chat-api/RawData";
@@ -1434,11 +1435,16 @@ function FloatingSuggestions(props: { textArea?: HTMLTextAreaElement }) {
   const [textBefore, setTextBefore] = createSignal("");
   const [isFocus, setIsFocus] = createSignal(false);
 
-  const content = () => channelProperties.get(params.channelId)?.content || "";
+  const properties = () => channelProperties.get(params.channelId);
+
+  const content = () => properties()?.content || "";
   const onFocus = () => setIsFocus(true);
 
   const onClick = (e: any) => {
-    setIsFocus(e.target.closest("." + styles.textArea));
+    setIsFocus(
+      e.target.closest("." + styles.textArea) ||
+        e.target.closest(".clickableCommandSuggestionItem")
+    );
   };
 
   const update = () => {
@@ -1472,29 +1478,42 @@ function FloatingSuggestions(props: { textArea?: HTMLTextAreaElement }) {
   const suggestEmojis = () =>
     textBefore().startsWith(":") && textBefore().length >= 3;
 
+  const suggestCommands = () =>
+    content().startsWith("/") || properties()?.selectedBotCommand;
+
   return (
-    <Show when={isFocus()}>
-      <Switch>
-        <Match when={suggestChannels()}>
-          <FloatingChannelSuggestions
-            search={textBefore().substring(1)}
-            textArea={props.textArea}
-          />
-        </Match>
-        <Match when={suggestUsers()}>
-          <FloatingUserSuggestions
-            search={textBefore().substring(1)}
-            textArea={props.textArea}
-          />
-        </Match>
-        <Match when={suggestEmojis()}>
-          <FloatingEmojiSuggestions
-            search={textBefore().substring(1)}
-            textArea={props.textArea}
-          />
-        </Match>
-      </Switch>
-    </Show>
+    <>
+      <Show when={isFocus()}>
+        <Switch>
+          <Match when={suggestChannels()}>
+            <FloatingChannelSuggestions
+              search={textBefore().substring(1)}
+              textArea={props.textArea}
+            />
+          </Match>
+          <Match when={suggestUsers()}>
+            <FloatingUserSuggestions
+              search={textBefore().substring(1)}
+              textArea={props.textArea}
+            />
+          </Match>
+          <Match when={suggestEmojis()}>
+            <FloatingEmojiSuggestions
+              search={textBefore().substring(1)}
+              textArea={props.textArea}
+            />
+          </Match>
+        </Switch>
+      </Show>
+      <Show when={suggestCommands() && !properties()?.editMessageId}>
+        <FloatingCommandSuggestions
+          focused={isFocus()}
+          search={content().substring(1).split(" ")[0] || ""}
+          textArea={props.textArea}
+          content={content()}
+        />
+      </Show>
+    </>
   );
 }
 
@@ -1680,7 +1699,6 @@ function FloatingUserSuggestions(props: {
   );
 
   const onUserClick = (user: User & { name?: string }) => {
-    console.log(user);
     if (!props.textArea) return;
     if (!user.tag) {
       appendText(
@@ -1827,6 +1845,151 @@ function FloatingEmojiSuggestions(props: {
         </For>
       </Floating>
     </Show>
+  );
+}
+function FloatingCommandSuggestions(props: {
+  search: string;
+  textArea?: HTMLTextAreaElement;
+  content: string;
+  focused: boolean;
+}) {
+  const params = useParams<{ channelId: string; serverId?: string }>();
+  const { servers, serverMembers, channelProperties } = useStore();
+
+  const server = () => servers.get(params.serverId!);
+
+  const channelProperty = () => channelProperties.get(params.channelId);
+  const selectedBotCommand = () => channelProperty()?.selectedBotCommand;
+
+  createEffect(() => {
+    if (!params.serverId || !server()) return;
+    servers.fetchAndStoreServerBotCommands(params.serverId);
+  });
+
+  createEffect(
+    on([() => props.search, () => props.content], (now, prev) => {
+      if (!selectedBotCommand()) return;
+      if (props.content.length < `/${selectedBotCommand()!.name} `.length) {
+        setTimeout(() => {
+          channelProperties.updateSelectedBotCommand(
+            params.channelId,
+            undefined
+          );
+        });
+      }
+      if (prev?.[0] === undefined) return;
+      if (now?.[0] === prev?.[0]) return;
+      setTimeout(() => {
+        channelProperties.updateSelectedBotCommand(params.channelId, undefined);
+      });
+    })
+  );
+
+  const commands = () => {
+    const cmds = server()?.botCommands || [];
+    if (props.content !== `/${props.search}`) return [];
+
+    const availableCmds = cmds.filter((cmd) =>
+      serverMembers.get(params.serverId!, cmd.botUserId)
+    );
+
+    return availableCmds;
+  };
+
+  const searched = () =>
+    matchSorter(commands(), props.search, {
+      keys: ["name"],
+    }).slice(0, 8);
+
+  createEffect(
+    on(searched, () => {
+      setCurrent(0);
+    })
+  );
+
+  const onItemClick = (cmd: RawBotCommand) => {
+    if (!props.textArea) return;
+    props.textArea.focus();
+
+    setTimeout(() => {
+      channelProperties.updateSelectedBotCommand(params.channelId, cmd);
+    });
+
+    channelProperties.updateContent(params.channelId, `/${cmd.name} `);
+  };
+
+  const onEnterClick = (i: number) => {
+    onItemClick(searched()[i]!);
+  };
+
+  const [current, , , setCurrent] = useSelectedSuggestion(
+    () => searched().length,
+    props.textArea!,
+    onEnterClick
+  );
+
+  return (
+    <>
+      <Show when={selectedBotCommand()}>
+        <Floating class={styles.floatingSuggestion}>
+          <CommandSuggestionItem
+            selected={false}
+            onHover={() => {}}
+            onclick={() => {}}
+            cmd={selectedBotCommand()!}
+          />
+        </Floating>
+      </Show>
+
+      <Show when={props.focused && searched().length}>
+        <Floating class={styles.floatingSuggestion}>
+          <For each={searched()}>
+            {(cmd, i) => (
+              <CommandSuggestionItem
+                class="clickableCommandSuggestionItem"
+                selected={current() === i()}
+                onHover={() => setCurrent(i())}
+                cmd={cmd}
+                onclick={onItemClick}
+              />
+            )}
+          </For>
+        </Floating>
+      </Show>
+    </>
+  );
+}
+
+function CommandSuggestionItem(props: {
+  onHover: () => void;
+  selected: boolean;
+  cmd: RawBotCommand;
+  onclick(cmd: RawBotCommand): void;
+  class?: string;
+}) {
+  const { users } = useStore();
+  const user = () => users.get(props.cmd.botUserId);
+  return (
+    <ItemContainer
+      onmousemove={props.onHover}
+      selected={props.selected}
+      class={cn(
+        styles.suggestionItem,
+        styles.commandSuggestionItem,
+        props.class
+      )}
+      onclick={() => props.onclick(props.cmd)}
+    >
+      <Avatar size={32} user={user()!} />
+
+      <div class={styles.suggestContent}>
+        <div class={styles.suggestHeader}>
+          <div class={styles.suggestLabel}>/{props.cmd.name}</div>
+          <div class={styles.suggestArgs}>{props.cmd.args}</div>
+        </div>
+        <div class={styles.suggestDescription}>{props.cmd.description}</div>
+      </div>
+    </ItemContainer>
   );
 }
 

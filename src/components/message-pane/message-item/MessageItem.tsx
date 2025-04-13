@@ -2,6 +2,8 @@ import styles from "./styles.module.scss";
 import { classNames, cn, conditionalClass } from "@/common/classNames";
 import {
   formatTimestamp,
+  fullDate,
+  fullDateTime,
   millisecondsToHhMmSs,
   timeElapsed,
   timeSince,
@@ -34,6 +36,7 @@ import {
   createSignal,
   createUniqueId,
   For,
+  JSX,
   lazy,
   Match,
   on,
@@ -94,6 +97,13 @@ import Checkbox from "@/components/ui/Checkbox";
 import { FlexColumn, FlexRow } from "@/components/ui/Flexbox";
 import { css } from "solid-styled-components";
 import { StorageKeys, useReactiveLocalStorage } from "@/common/localStorage";
+import {
+  inviteLinkRegex,
+  youtubeLinkRegex,
+  twitterStatusLinkRegex,
+} from "@/common/regex";
+import { RawYoutubeEmbed } from "./RawYoutubeEmbed";
+import { fetchTranslation, TranslateRes } from "@/common/GoogleTranslate";
 
 const DeleteMessageModal = lazy(
   () => import("../message-delete-modal/MessageDeleteModal")
@@ -196,6 +206,7 @@ interface MessageItemProps {
   userContextMenu?: (event: MouseEvent) => void;
   reactionPickerClick?: (event: MouseEvent) => void;
   quoteClick?: () => void;
+  translateMessage?: boolean;
 }
 
 interface DetailsProps {
@@ -256,6 +267,8 @@ const MessageItem = (props: MessageItemProps) => {
   const params = useParams();
   const { serverMembers, servers, account, friends } = useStore();
   const [hovered, setHovered] = createSignal(false);
+  const [translatedContent, setTranslatedContent] =
+    createSignal<TranslateRes>();
   const serverMember = createMemo(() =>
     params.serverId
       ? serverMembers.get(params.serverId, props.message.createdBy.id)
@@ -267,6 +280,18 @@ const MessageItem = (props: MessageItemProps) => {
     server()?.createdById === props.message.createdBy.id;
 
   const { createPortal } = useCustomPortal();
+
+  const isNewDay = createMemo(() => {
+    if (!props.beforeMessage) return true;
+    const beforeCreatedAt = new Date(props.beforeMessage.createdAt);
+    const createdAt = new Date(props.message.createdAt);
+
+    const nextDay = new Date(beforeCreatedAt);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(0, 0, 0, 0);
+
+    return createdAt >= nextDay;
+  });
 
   const currentTime = props.message?.createdAt;
   const beforeMessageTime = () => props.beforeMessage?.createdAt!;
@@ -301,6 +326,23 @@ const MessageItem = (props: MessageItemProps) => {
     if (member.isServerCreator()) return true;
     return member.hasPermission?.(ROLE_PERMISSIONS.MENTION_EVERYONE);
   };
+
+  const updateTranslation = async () => {
+    const translated = await fetchTranslation(props.message.content!).catch(
+      () => {
+        alert("Something went wrong, try again later.");
+      }
+    );
+    if (!translated) return;
+    setTranslatedContent(translated);
+  };
+
+  createEffect(() => {
+    if (!props.translateMessage) return;
+    if (!props.message.content) return;
+    if (translatedContent()) return;
+    updateTranslation();
+  });
 
   const selfMember = createMemo(() =>
     serverMembers.get(params.serverId!, account.user()?.id!)
@@ -369,104 +411,127 @@ const MessageItem = (props: MessageItemProps) => {
   };
 
   return (
-    <div
-      class={classNames(
-        styles.messageItem,
-        conditionalClass(isCompact(), styles.compact),
-        conditionalClass(isMentioned(), styles.mentioned),
-        conditionalClass(isSomeoneMentioned(), styles.someoneMentioned),
-        props.class,
-        "messageItem"
-      )}
-      onContextMenu={props.contextMenu}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      id={`message-${props.message.id}`}
-    >
-      <Show when={!props.hideFloating}>
-        <FloatOptions
-          textAreaEl={props.textAreaEl}
-          reactionPickerClick={props.reactionPickerClick}
-          showContextMenu={props.contextMenu}
-          isCompact={isCompact()}
-          message={props.message}
-        />
+    <>
+      <Show when={isNewDay()}>
+        <div class={styles.newDayMarker}>
+          {fullDate(props.message.createdAt, "long", "long")}
+        </div>
       </Show>
-      <Switch
-        fallback={
-          <Show when={blockedMessage()}>
-            <div
-              onClick={() => setBlockedMessage(false)}
-              class={classNames(
-                styles.blockedMessage,
-                conditionalClass(isCompact(), styles.compact)
-              )}
-            >
-              You have blocked this user. Click to show.
-            </div>
-          </Show>
-        }
+      <div
+        class={classNames(
+          styles.messageItem,
+          conditionalClass(isCompact(), styles.compact),
+          conditionalClass(isMentioned(), styles.mentioned),
+          conditionalClass(isSomeoneMentioned(), styles.someoneMentioned),
+          props.class,
+          "messageItem"
+        )}
+        onContextMenu={props.contextMenu}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        id={`message-${props.message.id}`}
       >
-        <Match when={isSystemMessage()}>
-          <SystemMessage message={props.message} />
-        </Match>
-        <Match when={!isSystemMessage() && !blockedMessage()}>
-          <div class={styles.messageInner}>
-            <MessageReplies message={props.message} />
-            <div class={styles.messageInnerInner}>
-              <Show when={!isCompact()}>
-                <A
-                  onClick={showProfileFlyout}
-                  onContextMenu={props.userContextMenu}
-                  href={RouterEndpoints.PROFILE(props.message.createdBy.id)}
-                  class={classNames(styles.avatar, "trigger-profile-flyout")}
-                >
-                  <Avatar
-                    animate={hovered()}
-                    user={props.message.createdBy}
-                    size={40}
-                    resize={96}
-                  />
-                </A>
-              </Show>
-              <div class={styles.messageInnerInnerInner}>
+        <Show when={!props.hideFloating}>
+          <FloatOptions
+            textAreaEl={props.textAreaEl}
+            reactionPickerClick={props.reactionPickerClick}
+            showContextMenu={props.contextMenu}
+            isCompact={isCompact()}
+            message={props.message}
+          />
+        </Show>
+        <Switch
+          fallback={
+            <Show when={blockedMessage()}>
+              <div
+                onClick={() => setBlockedMessage(false)}
+                class={classNames(
+                  styles.blockedMessage,
+                  conditionalClass(isCompact(), styles.compact)
+                )}
+              >
+                You have blocked this user. Click to show.
+              </div>
+            </Show>
+          }
+        >
+          <Match when={isSystemMessage()}>
+            <SystemMessage message={props.message} />
+          </Match>
+          <Match when={!isSystemMessage() && !blockedMessage()}>
+            <div class={styles.messageInner}>
+              <MessageReplies message={props.message} />
+              <div class={styles.messageInnerInner}>
                 <Show when={!isCompact()}>
-                  <Details
-                    hovered={hovered()}
-                    message={props.message}
-                    isServerCreator={isServerCreator()}
-                    isSystemMessage={isSystemMessage()}
-                    serverMember={serverMember()}
-                    showProfileFlyout={showProfileFlyout}
-                    userContextMenu={props.userContextMenu}
-                  />
+                  <A
+                    onClick={showProfileFlyout}
+                    onContextMenu={props.userContextMenu}
+                    href={RouterEndpoints.PROFILE(props.message.createdBy.id)}
+                    class={classNames(styles.avatar, "trigger-profile-flyout")}
+                  >
+                    <Avatar
+                      animate={hovered()}
+                      user={props.message.createdBy}
+                      size={40}
+                      resize={96}
+                    />
+                  </A>
                 </Show>
-                <Content message={props.message} hovered={hovered()} />
-                <Show when={props.message.uploadingAttachment}>
-                  <UploadAttachment message={props.message} />
-                </Show>
-                <Show when={props.message.reactions?.length}>
-                  <Reactions
-                    textAreaEl={props.textAreaEl}
-                    reactionPickerClick={props.reactionPickerClick}
-                    hovered={hovered()}
-                    message={props.message}
-                  />
-                </Show>
+                <div class={styles.messageInnerInnerInner}>
+                  <Show when={!isCompact()}>
+                    <Details
+                      hovered={hovered()}
+                      message={props.message}
+                      isServerCreator={isServerCreator()}
+                      isSystemMessage={isSystemMessage()}
+                      serverMember={serverMember()}
+                      showProfileFlyout={showProfileFlyout}
+                      userContextMenu={props.userContextMenu}
+                    />
+                  </Show>
+                  <Content message={props.message} hovered={hovered()} />
+                  <Show when={translatedContent()}>
+                    <div class={styles.translationArea}>
+                      <span class={styles.title}>
+                        Translation{" "}
+                        <span class={styles.translationSource}>
+                          ({translatedContent()?.src})
+                        </span>
+                      </span>
+                      <Markup
+                        text={translatedContent()?.translationString!}
+                        replaceCommandBotId
+                      />
+                    </div>
+                  </Show>
+                  <Show when={props.message.uploadingAttachment}>
+                    <UploadAttachment message={props.message} />
+                  </Show>
+                  <Show when={props.message.reactions?.length}>
+                    <Reactions
+                      textAreaEl={props.textAreaEl}
+                      reactionPickerClick={props.reactionPickerClick}
+                      hovered={hovered()}
+                      message={props.message}
+                    />
+                  </Show>
+                </div>
               </div>
             </div>
-          </div>
-        </Match>
-      </Switch>
-    </div>
+          </Match>
+        </Switch>
+      </div>
+    </>
   );
 };
 
 const Content = (props: { message: Message; hovered: boolean }) => {
   const params = useParams<{ serverId?: string }>();
+  const store = useStore();
   return (
     <div class={styles.content}>
       <Markup
+        replaceCommandBotId
         message={props.message}
         text={props.message.content || ""}
         serverId={params.serverId}
@@ -479,6 +544,19 @@ const Content = (props: { message: Message; hovered: boolean }) => {
         <SentStatus message={props.message} />
       </Show>
       <Embeds {...props} />
+      <Show when={props.message.local}>
+        <Button
+          label="Dismiss"
+          margin={0}
+          padding={4}
+          onClick={() => {
+            store.messages.locallyRemoveMessage(
+              props.message.channelId,
+              props.message.id
+            );
+          }}
+        />
+      </Show>
     </div>
   );
 };
@@ -564,7 +642,14 @@ const SystemMessage = (props: { message: Message }) => {
     <Show when={systemMessage()}>
       <div class={styles.systemMessage}>
         <div class={styles.iconContainer}>
-          <Icon name={systemMessage()?.icon} color={systemMessage()?.color} />
+          <Icon
+            name={systemMessage()?.icon}
+            class={cn(
+              styles.icon,
+              systemMessage()?.icon === "logout" ? styles.logoutIcon : undefined
+            )}
+            color={systemMessage()?.color}
+          />
         </div>
         <span class="markup">
           <MentionUser user={props.message.createdBy} />
@@ -582,14 +667,6 @@ const SystemMessage = (props: { message: Message }) => {
 };
 
 export default MessageItem;
-
-const inviteLinkRegex = new RegExp(`${env.APP_URL}/i/([\\S]+)`);
-
-const youtubeLinkRegex =
-  /(youtu.*be.*)\/(watch\?v=|embed\/|v|shorts|)(.*?((?=[&#?])|$))/;
-
-const twitterStatusLinkRegex =
-  /https:\/\/(www.)?(twitter|x)\.com(\/[a-zA-Z0-9_]+\/status\/[0-9]+)/;
 
 export function Embeds(props: {
   message: Message;
@@ -742,13 +819,12 @@ const GoogleDriveEmbeds = (props: { attachment: RawAttachment }) => {
   );
 };
 
-const YoutubeEmbed = (props: {
+export const YoutubeEmbed = (props: {
   code: string;
   embed: RawEmbed;
   shorts: boolean;
 }) => {
   const { paneWidth, height, width: windowWidth } = useWindowProperties();
-  const [playVideo, setPlayVideo] = createSignal<boolean>(false);
 
   const widthOffset = -90;
   const customHeight = 0;
@@ -771,51 +847,10 @@ const YoutubeEmbed = (props: {
       (customWidth || paneWidth()!) + (widthOffset || 0),
       600
     );
-    return clampImageSize(1920, 1080, maxWidth, (customHeight || height()) / 2);
+    return clampImageSize(1920, 1080, maxWidth, 999999);
   };
 
-  const thumbnailUrl = () => {
-    return `https://i.ytimg.com/vi/${props.code}/maxresdefault.jpg`;
-  };
-
-  return (
-    <div class={styles.youtubeEmbed}>
-      <div class={styles.video} style={style()}>
-        <Show when={!playVideo()}>
-          <img
-            style={{ width: "100%", height: "100%", "object-fit": "cover" }}
-            src={thumbnailUrl()}
-          />
-          <div
-            onClick={() => setPlayVideo(!playVideo())}
-            class={styles.playButtonContainer}
-          >
-            <div class={styles.playButton}>
-              <Icon name="play_arrow" color="var(--primary-color)" size={28} />
-            </div>
-          </div>
-        </Show>
-        <Show when={playVideo()}>
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://www.youtube-nocookie.com/embed/${props.code}?autoplay=1`}
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-          />
-        </Show>
-      </div>
-      <div class={styles.youtubeEmbedDetails}>
-        <div class={styles.title}>{props.embed.title}</div>
-        <div class={styles.info}>
-          {props.embed.channelName} •{" "}
-          <span class={styles.date}>{props.embed.uploadDate}</span>
-        </div>
-        <div class={styles.description}>{props.embed.description}</div>
-      </div>
-    </div>
-  );
+  return <RawYoutubeEmbed {...props} style={style()} />;
 };
 
 const TwitterEmbed = (props: { path: string }) => {
@@ -1171,7 +1206,7 @@ const GoogleDriveFileEmbed = (props: { attachment: RawAttachment }) => {
 
 const inviteCache = new Map<string, ServerWithMemberCount | false>();
 
-function ServerInviteEmbed(props: { code: string }) {
+export function ServerInviteEmbed(props: { code: string }) {
   const navigate = useNavigate();
   const { servers } = useStore();
   const [invite, setInvite] = createSignal<
@@ -1260,7 +1295,12 @@ function ServerInviteEmbed(props: { code: string }) {
   );
 }
 
-function OGEmbed(props: { message: RawMessage }) {
+export function OGEmbed(props: {
+  message: { content?: string; embed: RawEmbed };
+  customWidth?: number;
+  customHeight?: number;
+  customWidthOffset?: number;
+}) {
   const embed = () => props.message.embed!;
   const { createPortal } = useCustomPortal();
   const [showDetailed, setShowDetailed] = createSignal(false);
@@ -1339,7 +1379,9 @@ function OGEmbed(props: { message: RawMessage }) {
               width: embed().imageWidth,
               height: embed().imageHeight,
             }}
-            widthOffset={-90}
+            widthOffset={props.customWidthOffset || -90}
+            customWidth={props.customWidth}
+            customHeight={props.customHeight}
           />
         </Match>
         <Match when={embed().type !== "image"}>
@@ -1476,6 +1518,13 @@ const replaceImageUrl = (val: string, hasFocus: boolean) => {
     }")`;
   });
 };
+const htmlEmbedContainerStyles: JSX.CSSProperties = {
+  position: "relative",
+  display: "flex",
+  overflow: "auto",
+  "align-self": "normal",
+  "max-height": "500px",
+};
 
 function HTMLEmbed(props: { message: RawMessage }) {
   const id = createUniqueId();
@@ -1492,7 +1541,10 @@ function HTMLEmbed(props: { message: RawMessage }) {
 
   return (
     <ShadowRoot>
-      <div class={classNames(styles.htmlEmbedContainer, `htmlEmbed${id}`)}>
+      <div
+        class={classNames(`htmlEmbed${id}`)}
+        style={htmlEmbedContainerStyles}
+      >
         <HTMLEmbedItem
           items={
             Array.isArray(embed())
@@ -1937,6 +1989,7 @@ const MessageReplyItem = (props: {
           </Show>
           <div class={styles.replyContent}>
             <Markup
+              replaceCommandBotId
               inline
               message={props.replyToMessage!}
               text={props.replyToMessage!.content || ""}
@@ -1960,7 +2013,7 @@ const MessageReplyItem = (props: {
 const ShadowRoot: ParentComponent = (props) => {
   let div: HTMLDivElement;
   return (
-    <div ref={div!}>
+    <div ref={div!} style={{ width: "100%" }}>
       <Portal mount={div!} useShadow={true}>
         {props.children}
       </Portal>

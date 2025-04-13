@@ -32,6 +32,7 @@ import { classNames, cn } from "@/common/classNames";
 import { MetaTitle } from "@/common/MetaTitle";
 import Input from "../ui/input/Input";
 import { useJoinServer } from "@/chat-api/useJoinServer";
+import { CustomLink } from "../ui/CustomLink";
 
 const Container = styled("div")`
   display: flex;
@@ -129,7 +130,7 @@ export default function ExploreServers() {
 
   const update = (newPublicServer: RawPublicServer, index: number) => {
     const current = [...publicServers()!];
-    current[index] = newPublicServer;
+    current[index] = { ...current[index], ...newPublicServer };
     setPublicServers(current);
   };
 
@@ -283,6 +284,7 @@ const DetailsContainer = styled(FlexColumn)`
 const MemberContainer = styled(FlexRow)`
   align-items: center;
   flex-shrink: 0;
+  flex-wrap: wrap;
 `;
 
 const serverNameStyles = css`
@@ -447,6 +449,14 @@ function PublicServerItem(props: {
               {t("explore.servers.lifetimeBumpCount", {
                 count: props.publicServer.lifetimeBumpCount.toLocaleString(),
               })}
+            </Text>
+          </FlexRow>
+          <FlexRow gap={5}>
+            <Icon name="crown" size={17} color="var(--primary-color)" />
+            <Text size={12}>
+              <CustomLink href={RouterEndpoints.PROFILE(server.createdBy.id)}>
+                {props.publicServer.server?.createdBy.username}
+              </CustomLink>
             </Text>
           </FlexRow>
         </MemberContainer>

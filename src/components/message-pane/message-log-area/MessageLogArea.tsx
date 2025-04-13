@@ -11,6 +11,7 @@ import {
   ReactedUser,
   addMessageReaction,
   fetchMessageReactedUsers,
+  markMessageUnread,
 } from "@/chat-api/services/MessageService";
 import socketClient from "@/chat-api/socketClient";
 import { Message } from "@/chat-api/store/useMessages";
@@ -70,6 +71,7 @@ import { formatTimestamp } from "@/common/date";
 import { CreateTicketModal } from "@/components/CreateTicketModal";
 import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 import { pushMessageNotification } from "@/components/in-app-notification-previews/useInAppNotificationPreviews";
+import { fetchTranslation } from "@/common/GoogleTranslate";
 
 const DeleteMessageModal = lazy(
   () => import("../message-delete-modal/MessageDeleteModal")
@@ -215,7 +217,7 @@ export const MessageLogArea = (props: {
 
   const updateUnreadMarker = (ignoreFocus = false) => {
     if (!ignoreFocus && hasFocus()) return;
-    const lastSeenAt = channel().lastSeen || -1;
+    const lastSeenAt = channel()?.lastSeen || -1;
     const message = channelMessages()?.find(
       (m) => m.createdAt - lastSeenAt >= 0
     );
@@ -225,6 +227,21 @@ export const MessageLogArea = (props: {
     });
   };
 
+  createRenderEffect(
+    on(
+      [() => channelMessages()?.length, () => channel()?.lastSeen],
+      (now, prev) => {
+        if (!prev) return;
+        const [prevMessageLength, prevLastSeen] = prev;
+        const [nowMessageLength, nowLastSeen] = now;
+        if (prevMessageLength !== nowMessageLength) return;
+        if (!nowLastSeen) return;
+        if (!prevLastSeen) return;
+        if (nowLastSeen >= prevLastSeen) return;
+        updateUnreadMarker(true);
+      }
+    )
+  );
   createRenderEffect(
     on(
       () => channelMessages()?.length,
@@ -565,6 +582,15 @@ export const MessageLogArea = (props: {
     ));
   };
 
+  const [translateMessageIds, setTranslateMessageIds] = createSignal<string[]>(
+    []
+  );
+  const translateMessage = async () => {
+    const messageId = messageContextDetails()?.message.id;
+    if (translateMessageIds().includes(messageId!)) return;
+    setTranslateMessageIds([...translateMessageIds(), messageId!]);
+  };
+
   return (
     <div class={styles.messageLogArea} ref={messageLogElement}>
       <Show when={messageContextDetails()}>
@@ -572,6 +598,7 @@ export const MessageLogArea = (props: {
           {...messageContextDetails()!}
           replyMessage={() => replyMessage(messageContextDetails()?.message!)}
           quoteMessage={() => quoteMessage(messageContextDetails()?.message!)}
+          translateMessage={translateMessage}
           onClose={() => setMessageContextDetails(undefined)}
         />
       </Show>
@@ -622,6 +649,7 @@ export const MessageLogArea = (props: {
               <UnreadMarker onClick={removeUnreadMarker} />
             </Show>
             <MessageItem
+              translateMessage={translateMessageIds().includes(message.id!)}
               reactionPickerClick={(event) =>
                 reactionPickerClick(event, message)
               }
@@ -764,6 +792,7 @@ type MessageContextMenuProps = Omit<ContextMenuProps, "items"> & {
   clickEvent: MouseEvent;
   quoteMessage(): void;
   replyMessage(): void;
+  translateMessage?(): void;
 };
 
 function MessageContextMenu(props: MessageContextMenuProps) {
@@ -819,6 +848,17 @@ function MessageContextMenu(props: MessageContextMenuProps) {
   const isSelfMessage = () => account.user()?.id === props.message.createdBy.id;
   const showReportMessage = () => !isSelfMessage();
 
+  const onMarkUnreadClick = () => {
+    markMessageUnread({
+      channelId: props.message.channelId,
+      messageId: props.message.id,
+    });
+  };
+
+  const onTranslateClick = () => {
+    props.translateMessage?.();
+  };
+
   return (
     <ContextMenu
       triggerClassName="floatingShowMore"
@@ -828,6 +868,16 @@ function MessageContextMenu(props: MessageContextMenuProps) {
           icon: "face",
           label: t("messageContextMenu.viewReactions"),
           onClick: onViewReactionsClick,
+        },
+        {
+          icon: "translate",
+          label: "Translate",
+          onClick: onTranslateClick,
+        },
+        {
+          icon: "mark_chat_unread",
+          label: "Mark Unread",
+          onClick: onMarkUnreadClick,
         },
         ...(showQuote()
           ? [

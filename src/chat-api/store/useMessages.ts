@@ -31,6 +31,7 @@ export type Message = RawMessage & {
   tempId?: string;
   sentStatus?: MessageSentStatus;
   uploadingAttachment?: { file: File; progress: number; speed?: string };
+  local?: boolean;
 };
 
 const [messages, setMessages] = createStore<
@@ -154,6 +155,13 @@ const sendAndStoreMessage = async (channelId: string, content?: string) => {
   const tempMessageId = `${Date.now()}-${Math.random()}`;
   const channel = channels.get(channelId);
 
+  if (properties?.selectedBotCommand && content) {
+    const args = content?.split(" ");
+    args[0] = `${args[0]}:${properties.selectedBotCommand.botUserId}`;
+    content = args.join(" ");
+    channelProperties.updateSelectedBotCommand(channelId, undefined);
+  }
+
   const isSilent = !!content && silentRegex.test(content);
 
   if (content && isSilent) {
@@ -238,16 +246,9 @@ const sendAndStoreMessage = async (channelId: string, content?: string) => {
       );
       googleDriveFileId = res.id;
     } catch (err: any) {
-      pushFailedMessage(
-        channelId,
-        "Failed to upload file to Google Drive. ```Error\n" +
-          err.message +
-          "\nbody: " +
-          content +
-          "\nFilename: " +
-          file.name +
-          "```"
-      );
+      channelProperties.updateContent(channelId, content || "");
+      channelProperties.setAttachment(channelId, file, "google_drive");
+      pushFailedMessage(channelId, err.message || "Failed to upload File.");
       const index = messages[channelId]?.findIndex(
         (m) => m.tempId === tempMessageId
       );
@@ -267,16 +268,9 @@ const sendAndStoreMessage = async (channelId: string, content?: string) => {
       file,
       onUploadProgress,
     }).catch((err) => {
-      pushFailedMessage(
-        channelId,
-        "Failed to upload file. ```Error\n" +
-          err.message +
-          "\nbody: " +
-          content +
-          "\nFilename: " +
-          file.name +
-          "```"
-      );
+      channelProperties.updateContent(channelId, content || "");
+      channelProperties.setAttachment(channelId, file, "nerimity_cdn");
+      pushFailedMessage(channelId, err.message || "Failed to upload File. ");
       const index = messages[channelId]?.findIndex(
         (m) => m.tempId === tempMessageId
       );
@@ -312,14 +306,15 @@ const sendAndStoreMessage = async (channelId: string, content?: string) => {
         });
       }
     }
-    pushFailedMessage(
-      channelId,
-      "This message couldn't be sent. Try again later. ```Error\n" +
-        err.message +
-        "\nbody: " +
-        content +
-        "```"
-    );
+    channelProperties.updateContent(channelId, content || "");
+    if (properties?.attachment) {
+      channelProperties.setAttachment(
+        channelId,
+        file,
+        properties?.attachment?.uploadTo
+      );
+    }
+    pushFailedMessage(channelId, err.message || "Failed to send message. ");
   });
 
   if (message && channel?.slowModeSeconds) {
@@ -372,6 +367,7 @@ const pushFailedMessage = (channelId: string, content: string) => {
     quotedMessages: [],
     id: Math.random().toString(),
     type: MessageType.CONTENT,
+    local: true,
     content,
   });
 };
